@@ -1,5 +1,4 @@
 <?php
-include 'rooms.php';
 include 'classesClasses.php';
 
 
@@ -42,10 +41,10 @@ $days = array(
     array()
 );
 $dayCounter = 0;
+//Loop to allocate Times
 foreach($meetingTimeList as $time)
 {
-    //echo "Day Code: $dayCounter Hours in Monday: $mon, Tue: $tue, Wed: $wed, Thu: $thu, Fri: $fri, Sat: $sat, Sun: $sun";
-    //echo "<br>".$time->getHours()."<br>";
+    //Monday's Schedule
     if($dayCounter == 0 && $mon >= $time->getHours())
     {
         $mon -= $time->getHours();
@@ -56,6 +55,7 @@ foreach($meetingTimeList as $time)
             $time->getSection()->setDayOfWeekCode(1);
         }
     }
+    //Tuesday's Schedule
     else if($dayCounter == 1 && $tue >= $time->getHours())
     {
         $tue -= $time->getHours();
@@ -66,6 +66,7 @@ foreach($meetingTimeList as $time)
             $time->getSection()->setDayOfWeekCode(2);
         }
     }
+    //Wednesday's Schedule
     else if($dayCounter == 2 && $wed >= $time->getHours())
     {
         $wed -= $time->getHours();
@@ -76,6 +77,7 @@ foreach($meetingTimeList as $time)
             $time->getSection()->setDayOfWeekCode(3);
         }
     }
+    //Thursday's Schedule
     else if($dayCounter == 3 && $thu >= $time->getHours())
     {
         $thu -= $time->getHours();
@@ -86,6 +88,7 @@ foreach($meetingTimeList as $time)
             $time->getSection()->setDayOfWeekCode(4);
         }
     }
+    //Friday's Schedule
     else if($dayCounter == 4 && $fri >= $time->getHours())
     {
         $fri -= $time->getHours();
@@ -96,6 +99,7 @@ foreach($meetingTimeList as $time)
             $time->getSection()->setDayOfWeekCode(5);
         }
     }
+    //Saturday's Schedule
     else if($dayCounter == 5 && $sat >= $time->getHours())
     {
         $sat -= $time->getHours();
@@ -106,6 +110,7 @@ foreach($meetingTimeList as $time)
             $time->getSection()->setDayOfWeekCode(6);
         }
     }
+    //Sunday's Schedule
     else if($dayCounter == 6 && $sun >= $time->getHours())
     {
         $sun -= $time->getHours();
@@ -117,31 +122,37 @@ foreach($meetingTimeList as $time)
         }
     }
     if($dayCounter != 0)
-        $dayCounter = ($dayCounter+1) %7;
+        $dayCounter = ($dayCounter+1) % 7;
     else
         $dayCounter++;
 }
-$listOfRooms = $rooms->getList();
+$rooms;
 $dayCounter = 1;
 $startingTime = 8;
 $allocatedTimes = 0;
+//Go through generated dataset to calculate the meaning of the allocations
+//Assigning things like start hour, day of week, and all relevant info for section number
 foreach($days as $day)
 {
     $timeInDay = 0;
+
     foreach($day as $time)
     {
         $time->setStartHour($timeInDay%13);
-        $time->setRoomNo($listOfRooms[floor($timeInDay/13)]->getRoomNo());
+        $time->setRoomNo($rooms[floor($timeInDay/13)]);
         $time->setDayOfWeek($dayCounter);
         $timeInDay += $time->getHours();
         $time->getSection()->calcHourCode();
-        //$time->print();
-        //echo '<br>';
+        //if($time->getSection()->getHourCode() <1)
+        {
+            $time->print();
+            echo '<br>';
+        }
     }
     $dayCounter++;
+    //For Checking Allocated Count
     $allocatedTimes += count($day);
 }
-echo count($meetingTimeList)." ".$allocatedTimes;
 }
 function findPartialAllocations(&$sectionList)
 {
@@ -160,17 +171,22 @@ function buildSchedule($listOfRooms,$sectionRecords)
 //////////////////////////////////////////////////////////////////////
 //Start of code to create schedule in DB
 //////////////////////////////////////////////////////////////////////
-$rooms = new Rooms($listOfRooms);
-$schedule = generateSchedule($sectionRecords,$rooms);
+//
+$schedule = generateSchedule($sectionRecords,$listOfRooms);
 $hoursScheduled = 0;
+//server name
 $sn = 'localhost';
+//user name
 $un = 'root';
+//password
 $pw = '';
+//DB name
 $db = 'CSC350GroupG';
 $conn = mysqli_connect($sn, $un, $pw, $db );
+//Remove stale data from old schedule
 $sql = "truncate table Schedule";
 runQuery($conn,$sql);
-
+//Generate SQL To create schedule records
 $sql = "insert into Schedule values";
 foreach($schedule as $time)
 {
@@ -182,9 +198,10 @@ foreach($schedule as $time)
     $DayOfWeek = $time->getDayOfWeek();
     $classCode = $time->getSection()->getClassCode();
 
-     $sql .= "($meetingTimeId,'$sectionNo','$roomNo',$startTime,$endTime,'$DayOfWeek','$classCode'),";
+    $sql .= "($meetingTimeId,'$sectionNo','$roomNo',$startTime,$endTime,'$DayOfWeek','$classCode'),";
     
 }
+//final prep of SQL insert statment
 $sql = substr($sql,0,strlen($sql)-1);
 $sql = $sql.';';
 runQuery($conn,$sql);
@@ -193,71 +210,8 @@ runQuery($conn,$sql);
 //////////////////////////////////////////////////////////////////////
 
 }
-function allocate(&$meetingTimeList,&$rooms)
-{
-
-    foreach($meetingTimeList as $meetingTime)
-    {
-        $room = $rooms->doesMondayHaveSpace($meetingTime);
-        if($room != false && $meetingTime->getStartHour() < 0)
-        {
-            $room->pushMon($meetingTime);
-        }
-    }
-    foreach($meetingTimeList as $meetingTime)
-    {
-        $room = $rooms->doesTuesdayHaveSpace($meetingTime);
-        if($room != false && $meetingTime->getStartHour() < 0)
-        {
-            $room->pushTue($meetingTime);
-        }
-    }
-    foreach($meetingTimeList as $meetingTime)
-    {
-        $room = $rooms->doesWednesdayHaveSpace($meetingTime);
-        if($room != false && $meetingTime->getStartHour() < 0)
-        {
-            $room->pushWed($meetingTime);
-        }
-    }
-    foreach($meetingTimeList as $meetingTime)
-    {
-        $room = $rooms->doesThursdayHaveSpace($meetingTime);
-        if($room != false && $meetingTime->getStartHour() < 0)
-        {
-            $room->pushThu($meetingTime);
-        }
-    }
-    foreach($meetingTimeList as $meetingTime)
-    {
-        $room = $rooms->doesFridayHaveSpace($meetingTime);
-        if($room != false && $meetingTime->getStartHour() < 0)
-        {
-            $room->pushFri($meetingTime);
-        }
-    }
-    foreach($meetingTimeList as $meetingTime)
-    {
-        $room = $rooms->doesSaturdayHaveSpace($meetingTime);
-        if($room != false && $meetingTime->getStartHour() < 0)
-        {
-            $room->pushSat($meetingTime);
-        }
-    }
-    foreach($meetingTimeList as $meetingTime)
-    {
-        $room = $rooms->doesSundayHaveSpace($meetingTime);
-        if($room != false && $meetingTime->getStartHour() < 0)
-        {
-            $room->pushSun($meetingTime);
-        }
-    }
-    
-}
 function generateSchedule($recordList,$rooms)
 {
-
-
 $sectionList = array();
 foreach($recordList as $x)
 {
@@ -267,12 +221,9 @@ foreach($recordList as $x)
 $cred4 = array();
 $cred3 = array();
 $cred2 = array();
+//Separated out to separate lists for Sorting
 foreach($sectionList as $sec)
 {
-    /*
-    $sec->print();
-    echo '<br>';
-    */
     if($sec->getCredits() == 3)
     {
         foreach($sec->getMeetingTimesList() as $meetingTime)
@@ -288,21 +239,12 @@ foreach($sectionList as $sec)
         foreach($sec->getMeetingTimesList() as $meetingTime)
             array_push($cred2,$meetingTime);
     }
-   /*else
-    {
-        //Only for debugging to show when a class is 
-        //considered invalid by Algorithm
-        echo 'invalid class no class with '.$sec->getCredits();
-        echo ' credits exists ';
-        echo 'class '.$sec->getClassCode();
-        echo ' will not be processed<br>';
-       
-    }*/
 }
+//sorting lists according to credits, then hours in meeting
 usort($cred4, 'cmpMeetingTimeAsc');
 usort($cred3, 'cmpMeetingTimeAsc');
 usort($cred2, 'cmpMeetingTimeAsc');
-    $totalHoursPerDay = 13*$rooms->getCount();
+    $totalHoursPerDay = 13*count($rooms);
 $mon = $totalHoursPerDay;
 $tue = $totalHoursPerDay;
 $wed = $totalHoursPerDay;
@@ -311,13 +253,16 @@ $fri = $totalHoursPerDay;
 $sat = $totalHoursPerDay;
 $sun = $totalHoursPerDay;
 $data = array();
+//Join Sorted arrays into 
 foreach($cred2 as $x)
     array_push($data,$x);
 foreach($cred3 as $x)
     array_push($data,$x);
 foreach($cred4 as $x)
     array_push($data,$x);
+//Algorithm to schedule list of meeting times
 SchedulingAlgorithm($data,$rooms,$mon,$tue,$wed,$thu,$fri,$sat,$sun);
+
 $toBeDeAllocated = findPartialAllocations($sectionList);
 
 foreach($toBeDeAllocated as $sectionToDeAllocate)

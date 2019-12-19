@@ -20,9 +20,10 @@ private $hourCode;
     function calcHourCode()
     {
         $firstDayOfWeek = false;
-        $minDay = 7;
+        $minDay = 8;
         foreach($this->meetingTimeList as $time)
         {
+            //echo '<br>this time start hour: '.$time->getStartHour().' DayOf Week Code: '.$time->getDayOfWeekCode() .'<br>';
             if($time->getDayOfWeekCode() < $minDay && $time->getDayOfWeekCode() > 0 
             && $time->getStartHour() > 0)
             {
@@ -32,6 +33,7 @@ private $hourCode;
         }
         if($firstDayOfWeek)
         {
+            //echo ' startHourAssigned:'.$firstDayOfWeek->getStartHour();
             $this->setHourCode($firstDayOfWeek->getStartHour());
         }
     }
@@ -72,7 +74,7 @@ private $hourCode;
     }
     function getSectionId()
     {
-        return $this->sectionId*2;
+        return $this->sectionId;
     }
     function getSubPriority()
     {
